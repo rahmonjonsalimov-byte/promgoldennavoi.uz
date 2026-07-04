@@ -1,0 +1,112 @@
+/* ===== header adaptive (clean) ===== */
+header{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  z-index:100;
+  background:rgba(22,17,12,0.0);
+  transition:all .3s ease;
+}
+
+header.scrolled{
+  background:rgba(22,17,12,0.92);
+  backdrop-filter:blur(8px);
+}
+
+.nav{
+  display:flex;
+  align-items:center;
+  padding:20px 32px;
+  max-width:1240px;
+  margin:0 auto;
+}
+
+/* LOGO */
+.logo{
+  display:flex;
+  flex-direction:column;
+  color:#fff;
+  margin-right:50px;
+}
+
+.logo span{
+  font-size:9px;
+  margin-top:6px;
+}
+
+/* MENU DESKTOP */
+.navlinks{
+  display:flex;
+  gap:34px;
+  list-style:none;
+  margin-left:auto;
+}
+
+.navlinks a{
+  color:rgba(255,255,255,0.8);
+  font-size:13px;
+  white-space:nowrap;
+}
+
+/* RIGHT SIDE */
+.navcta{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  margin-left:30px;
+}
+
+/* BURGER */
+.burger{
+  display:none;
+  flex-direction:column;
+  gap:5px;
+  background:none;
+  border:none;
+  cursor:pointer;
+}
+
+.burger span{
+  width:24px;
+  height:2px;
+  background:#fff;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 900px){
+
+  .navlinks{
+    position:fixed;
+    top:70px;
+    left:0;
+    right:0;
+    background:#16110c;
+    flex-direction:column;
+    padding:24px;
+    gap:20px;
+
+    transform:translateY(-120%);
+    opacity:0;
+    pointer-events:none;
+    transition:all .3s ease;
+  }
+
+  .navlinks.active{
+    transform:translateY(0);
+    opacity:1;
+    pointer-events:auto;
+  }
+
+  .navcta{
+    margin-left:auto;
+  }
+
+  .navcta .btn{
+    display:none; /* кнопку скрываем на мобиле */
+  }
+
+  .burger{
+    display:flex;
+  }
+}
