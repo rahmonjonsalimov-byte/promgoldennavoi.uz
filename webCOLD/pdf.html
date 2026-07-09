@@ -1,0 +1,342 @@
+  <!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF → Word · Конвертер</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#f6f7fb;--card:#fff;--ink:#131722;--soft:#606a7b;--muted:#9aa3b2;
+  --line:#e7e9f0;--brand:#c6a15b;--brand-d:#a67c3d;--ok:#2e9e5b;--err:#e0533d;
+  --grad:linear-gradient(135deg,#e6cf9a,#c6a15b 55%,#a67c3d);
+  --shadow:0 20px 60px -24px rgba(20,25,40,.28);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',system-ui,sans-serif;background:
+  radial-gradient(1200px 500px at 80% -10%,rgba(198,161,91,.10),transparent),
+  var(--bg);color:var(--ink);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:48px 24px 80px}
+header{text-align:center;margin-bottom:40px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);
+  padding:7px 16px;border-radius:30px;font-size:12.5px;font-weight:600;letter-spacing:.5px;color:var(--brand-d);
+  box-shadow:0 6px 18px -12px rgba(20,25,40,.3)}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--grad)}
+h1{font-size:clamp(30px,5vw,44px);font-weight:800;letter-spacing:-.5px;margin:20px 0 12px;line-height:1.1}
+h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--soft);font-size:16.5px;max-width:580px;margin:0 auto}
+
+.drop{background:var(--card);border:2px dashed #d7dbe6;border-radius:20px;padding:52px 30px;text-align:center;
+  transition:.3s;cursor:pointer;position:relative;box-shadow:var(--shadow)}
+.drop:hover,.drop.drag{border-color:var(--brand);background:#fffdf8}
+.drop .ic{width:74px;height:74px;margin:0 auto 20px;border-radius:20px;background:var(--grad);
+  display:grid;place-items:center;color:#fff;box-shadow:0 16px 34px -14px rgba(166,124,61,.65)}
+.drop h3{font-size:20px;font-weight:700;margin-bottom:6px}
+.drop p{color:var(--soft);font-size:14.5px}
+.drop .pick{color:var(--brand-d);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+input[type=file]{display:none}
+
+.opts{display:flex;gap:14px;align-items:center;justify-content:center;margin:22px 0 0;flex-wrap:wrap;color:var(--soft);font-size:14px}
+.seg{display:inline-flex;background:#eef0f6;border-radius:12px;padding:4px;gap:4px}
+.seg button{border:none;background:none;padding:8px 16px;border-radius:9px;font-family:inherit;font-weight:600;
+  font-size:13.5px;color:var(--soft);cursor:pointer;transition:.2s}
+.seg button.active{background:#fff;color:var(--ink);box-shadow:0 3px 10px -4px rgba(20,25,40,.25)}
+
+.files{margin-top:30px;display:flex;flex-direction:column;gap:16px}
+.file{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 10px 30px -22px rgba(20,25,40,.4)}
+.file-top{display:flex;align-items:center;gap:14px}
+.file-ic{width:44px;height:44px;flex:none;border-radius:11px;background:#fbefe0;color:var(--brand-d);display:grid;place-items:center;font-weight:800;font-size:12px}
+.file-meta{flex:1;min-width:0}
+.file-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-info{font-size:13px;color:var(--muted);margin-top:2px}
+.file-x{width:32px;height:32px;flex:none;border:none;background:#f2f3f8;border-radius:9px;color:var(--soft);cursor:pointer;display:grid;place-items:center;transition:.2s}
+.file-x:hover{background:#feecea;color:var(--err)}
+.bar{height:6px;background:#eef0f6;border-radius:6px;margin-top:14px;overflow:hidden;display:none}
+.bar.show{display:block}
+.bar i{display:block;height:100%;width:0;background:var(--grad);border-radius:6px;transition:width .2s}
+.thumbs{display:flex;gap:10px;margin-top:14px;overflow-x:auto;padding-bottom:4px}
+.thumbs img{height:120px;border:1px solid var(--line);border-radius:6px;flex:none;background:#fff;box-shadow:0 6px 16px -12px rgba(20,25,40,.5)}
+.file-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px;flex-wrap:wrap}
+.status{font-size:13.5px;font-weight:600;color:var(--muted)}
+.status.ready{color:var(--ok)}
+.status.work{color:var(--brand-d)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:9px;border:none;border-radius:11px;padding:12px 20px;
+  font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;transition:.25s;white-space:nowrap}
+.btn svg{flex:none}
+.btn-gold{background:var(--grad);color:#fff;box-shadow:0 12px 26px -12px rgba(166,124,61,.6)}
+.btn-gold:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 18px 32px -14px rgba(166,124,61,.7)}
+.btn-line{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-line:hover:not(:disabled){border-color:var(--brand);color:var(--brand-d)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+
+.modes{margin-top:34px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mode{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.mode .h{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px;margin-bottom:8px}
+.mode .h .m{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff}
+.mode.copy .m{background:var(--grad)}
+.mode.text .m{background:linear-gradient(135deg,#5b7cbf,#3f5ea8)}
+.mode p{color:var(--soft);font-size:13.5px;line-height:1.55}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:36px}
+@media(max-width:600px){.wrap{padding:32px 16px 60px}.drop{padding:40px 20px}.modes{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge"><span class="dot"></span>Локально в браузере · файлы не загружаются на сервер</span>
+    <h1>PDF → <span>Word</span></h1>
+    <p class="sub">Загрузите PDF и выберите один из двух режимов конвертации в Word — точную копию внешнего вида или редактируемый текст.</p>
+  </header>
+
+  <label class="drop" id="drop">
+    <div class="ic">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+      </svg>
+    </div>
+    <h3>Перетащите PDF сюда</h3>
+    <p>или <span class="pick">выберите файлы</span> на устройстве · можно несколько сразу</p>
+    <input type="file" id="input" accept="application/pdf,.pdf" multiple>
+  </label>
+
+  <div class="opts">
+    <span>Качество (для точной копии):</span>
+    <div class="seg" id="quality">
+      <button data-scale="1.6">Стандарт</button>
+      <button data-scale="2.2" class="active">Высокое</button>
+      <button data-scale="3">Максимум</button>
+    </div>
+  </div>
+
+  <div class="files" id="files"></div>
+
+  <div class="modes">
+    <div class="mode copy">
+      <div class="h"><span class="m"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></span>Точная копия</div>
+      <p>Каждая страница вставляется как изображение высокого разрешения — вид, вёрстка, шрифты и печати сохраняются <b>один в один</b>. Минус: текст нельзя редактировать.</p>
+    </div>
+    <div class="mode text">
+      <div class="h"><span class="m"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5h16v2M9 20h6M12 5v15"/></svg></span>Редактируемый текст</div>
+      <p>Извлекает текст из PDF в <b>настоящий редактируемый</b> Word. Минус: оригинальная вёрстка не сохраняется (текст переносится по строкам, без точного расположения).</p>
+    </div>
+  </div>
+
+  <footer>Обрабатывается прямо в вашем браузере · без загрузки на сторонние серверы</footer>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+let SCALE=2.2;
+const filesEl=document.getElementById('files');
+const input=document.getElementById('input');
+const drop=document.getElementById('drop');
+
+document.querySelectorAll('#quality button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#quality button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); SCALE=parseFloat(b.dataset.scale);
+}));
+
+;['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+;['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+drop.addEventListener('drop',e=>handleFiles(e.dataTransfer.files));
+input.addEventListener('change',e=>handleFiles(e.target.files));
+
+function fmt(b){const u=['Б','КБ','МБ','ГБ'];let i=0,n=b;while(n>=1024&&i<u.length-1){n/=1024;i++;}return n.toFixed(n<10&&i>0?1:0)+' '+u[i];}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function dl(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),4000);}
+
+async function handleFiles(list){
+  for(const f of list){
+    if(f.type!=='application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) continue;
+    renderFileCard(f);
+  }
+  input.value='';
+}
+
+function renderFileCard(file){
+  const card=document.createElement('div'); card.className='file';
+  const baseName=file.name.replace(/\.pdf$/i,'');
+  card.innerHTML=`
+    <div class="file-top">
+      <div class="file-ic">PDF</div>
+      <div class="file-meta">
+        <div class="file-name">${esc(file.name)}</div>
+        <div class="file-info">${fmt(file.size)} · подготовка…</div>
+      </div>
+      <button class="file-x" title="Удалить"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="bar"><i></i></div>
+    <div class="thumbs"></div>
+    <div class="file-foot">
+      <div class="status work">Рендеринг страниц…</div>
+      <div class="btns">
+        <button class="btn btn-gold" data-act="copy" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+          Точная копия
+        </button>
+        <button class="btn btn-line" data-act="text" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7V5h16v2M9 20h6M12 5v15"/></svg>
+          Редактируемый текст
+        </button>
+      </div>
+    </div>`;
+  filesEl.prepend(card);
+
+  const infoEl=card.querySelector('.file-info');
+  const bar=card.querySelector('.bar'), barI=card.querySelector('.bar i');
+  const thumbs=card.querySelector('.thumbs');
+  const status=card.querySelector('.status');
+  const btnCopy=card.querySelector('[data-act="copy"]');
+  const btnText=card.querySelector('[data-act="text"]');
+  card.querySelector('.file-x').addEventListener('click',()=>card.remove());
+
+  const state={pages:[],baseName,buf:null};
+
+  (async()=>{
+    try{
+      bar.classList.add('show');
+      const buf=await file.arrayBuffer();
+      state.buf=buf;
+      const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0))}).promise;
+      const total=pdf.numPages;
+      infoEl.textContent=`${fmt(file.size)} · ${total} стр.`;
+      for(let i=1;i<=total;i++){
+        const page=await pdf.getPage(i);
+        const vp1=page.getViewport({scale:1});
+        const vp=page.getViewport({scale:SCALE});
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.floor(vp.width); canvas.height=Math.floor(vp.height);
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        await page.render({canvasContext:ctx,viewport:vp}).promise;
+        const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
+        state.pages.push({blob,wPt:vp1.width,hPt:vp1.height});
+        if(i<=8){const im=new Image();im.src=URL.createObjectURL(blob);thumbs.appendChild(im);}
+        else if(i===9){const m=document.createElement('div');m.style.cssText='align-self:center;color:var(--muted);font-size:13px;padding:0 8px';m.textContent='+'+(total-8);thumbs.appendChild(m);}
+        barI.style.width=Math.round(i/total*100)+'%';
+        page.cleanup(); await new Promise(r=>setTimeout(r));
+      }
+      bar.classList.remove('show');
+      status.textContent='Готово · выберите формат'; status.className='status ready';
+      btnCopy.disabled=false; btnText.disabled=false;
+      btnCopy.addEventListener('click',()=>convertCopy(state,btnCopy,status));
+      btnText.addEventListener('click',()=>convertText(state,btnText,status));
+    }catch(err){
+      console.error(err);
+      status.textContent='Ошибка чтения PDF'; status.className='status'; status.style.color='var(--err)';
+      bar.classList.remove('show');
+    }
+  })();
+}
+
+/* ======= общие куски DOCX ======= */
+const EMU=12700, TW=20;
+function contentTypes(png){return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${png?'<Default Extension="png" ContentType="image/png"/>':''}<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;}
+const MAIN_RELS=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+function pkg(docXml,docRelsInner,pngList){
+  const zip=new JSZip();
+  zip.file('[Content_Types].xml',contentTypes(!!pngList));
+  zip.file('_rels/.rels',MAIN_RELS);
+  zip.file('word/document.xml',docXml);
+  zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${docRelsInner||''}</Relationships>`);
+  if(pngList){const m=zip.folder('word/media');pngList.forEach((b,i)=>m.file('image'+(i+1)+'.png',b));}
+  return zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE',compressionOptions:{level:6}});
+}
+
+/* ======= РЕЖИМ 1: точная копия (картинки) ======= */
+function drawing(idx,cx,cy,rId){
+  return `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${idx}" name="Page${idx}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${idx}" name="Page${idx}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+}
+async function convertCopy(state,btn,status){
+  btn.disabled=true; const old=btn.innerHTML; status.textContent='Сборка Word (копия)…'; status.className='status work';
+  try{
+    let body='',rels='',imgs=[];
+    const p0=state.pages[0];
+    const twW=Math.round(p0.wPt*TW),twH=Math.round(p0.hPt*TW);
+    state.pages.forEach((pg,i)=>{
+      const n=i+1,rId='rId'+n; imgs.push(pg.blob);
+      rels+=`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image${n}.png"/>`;
+      const cx=Math.round(pg.wPt*EMU),cy=Math.round(pg.hPt*EMU*0.997);
+      const brk=i>0?'<w:pageBreakBefore/>':'';
+      body+=`<w:p><w:pPr>${brk}<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/><w:rPr><w:sz w:val="2"/></w:rPr></w:pPr><w:r><w:rPr><w:noProof/></w:rPr>${drawing(n,cx,cy,rId)}</w:r></w:p>`;
+    });
+    const sect=`<w:sectPr><w:pgSz w:w="${twW}" w:h="${twH}"/><w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`;
+    const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}${sect}</w:body></w:document>`;
+    const blob=await pkg(doc,rels,imgs);
+    dl(blob,state.baseName+'.docx');
+    status.textContent='Копия скачана ✓'; status.className='status ready';
+  }catch(e){console.error(e);status.textContent='Ошибка сборки';status.className='status';status.style.color='var(--err)';}
+  finally{btn.disabled=false;btn.innerHTML=old;}
+}
+
+/* ======= РЕЖИМ 2: редактируемый текст ======= */
+function mkLine(text,heights){
+  let sz=22;
+  if(heights.length){heights.sort((a,b)=>a-b);const med=heights[Math.floor(heights.length/2)];if(med>0)sz=Math.round(Math.min(Math.max(med,6),40)*2);}
+  return {text:text.replace(/\s+$/,''),sz};
+}
+function buildLines(tc){
+  const items=tc.items.filter(it=>typeof it.str==='string');
+  const rows=[];
+  const eol=items.some(it=>'hasEOL' in it);
+  if(eol){
+    let text='',heights=[],prevEnd=null;
+    for(const it of items){
+      const x=it.transform[4],w=it.width||0,h=it.height||Math.abs(it.transform[3])||0;
+      if(prevEnd!==null){
+        const gap=x-prevEnd;
+        if(gap>(h||8)*0.28 && !/\s$/.test(text) && !/^\s/.test(it.str)) text+=' ';
+      }
+      text+=it.str; if(h)heights.push(h); prevEnd=x+w;
+      if(it.hasEOL){rows.push(mkLine(text,heights));text='';heights=[];prevEnd=null;}
+    }
+    if(text.length)rows.push(mkLine(text,heights));
+  }else{
+    const arr=items.map(it=>({s:it.str,x:it.transform[4],y:it.transform[5],w:it.width||0,h:it.height||Math.abs(it.transform[3])||8}));
+    arr.sort((a,b)=> b.y-a.y || a.x-b.x);
+    let curY=null,buf=[];
+    const flush=()=>{if(!buf.length)return;buf.sort((a,b)=>a.x-b.x);let t='',hs=[],pe=null;for(const o of buf){if(pe!==null){const g=o.x-pe;if(g>(o.h||8)*0.28&&!/\s$/.test(t))t+=' ';}t+=o.s;hs.push(o.h);pe=o.x+o.w;}rows.push(mkLine(t,hs));buf=[];};
+    for(const o of arr){if(curY===null||Math.abs(o.y-curY)<=Math.max(2,o.h*0.5)){buf.push(o);if(curY===null)curY=o.y;}else{flush();buf=[o];curY=o.y;}}
+    flush();
+  }
+  const out=[];let emptyRun=0;
+  for(const r of rows){if(r.text.trim()===''){emptyRun++;if(emptyRun<=1)out.push(r);}else{emptyRun=0;out.push(r);}}
+  return out;
+}
+async function convertText(state,btn,status){
+  btn.disabled=true; const old=btn.innerHTML; status.textContent='Извлечение текста…'; status.className='status work';
+  try{
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(state.buf.slice(0))}).promise;
+    let body='';
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const tc=await page.getTextContent();
+      const lines=buildLines(tc);
+      lines.forEach((ln,idx)=>{
+        const brk=(idx===0&&i>1)?'<w:pageBreakBefore/>':'';
+        if(ln.text.trim()===''){body+=`<w:p><w:pPr>${brk}</w:pPr></w:p>`;}
+        else{body+=`<w:p><w:pPr>${brk}<w:spacing w:after="60" w:line="276" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:sz w:val="${ln.sz}"/><w:szCs w:val="${ln.sz}"/></w:rPr><w:t xml:space="preserve">${esc(ln.text)}</w:t></w:r></w:p>`;}
+      });
+      page.cleanup(); await new Promise(r=>setTimeout(r));
+    }
+    if(!body) body='<w:p><w:r><w:t xml:space="preserve">В этом PDF не найден текстовый слой (возможно, это скан). Используйте режим «Точная копия».</w:t></w:r></w:p>';
+    const sect=`<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`;
+    const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}${sect}</w:body></w:document>`;
+    const blob=await pkg(doc,'',null);
+    dl(blob,state.baseName+' — текст.docx');
+    status.textContent='Текстовый Word скачан ✓'; status.className='status ready';
+  }catch(e){console.error(e);status.textContent='Ошибка извлечения';status.className='status';status.style.color='var(--err)';}
+  finally{btn.disabled=false;btn.innerHTML=old;}
+}
+</script>
+</body>
+</html>
